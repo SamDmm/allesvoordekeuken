@@ -20,4 +20,10 @@ class JpaArtikelRepository implements ArtikelRepository {
 	public Optional<Artikel> read(long id) {
 		return Optional.ofNullable(manager.find(Artikel.class, id));
 	}
+
+	@Override
+	public void create(Artikel artikel) {
+		manager.persist(artikel);
+		
+	}
 }
