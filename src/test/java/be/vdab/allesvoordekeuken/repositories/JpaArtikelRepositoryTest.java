@@ -3,8 +3,10 @@ package be.vdab.allesvoordekeuken.repositories;
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertFalse;
 import static org.junit.Assert.assertNotEquals;
+import static org.junit.Assert.assertTrue;
 
 import java.math.BigDecimal;
+import java.util.List;
 
 import org.junit.Before;
 import org.junit.Test;
@@ -54,5 +56,18 @@ public class JpaArtikelRepositoryTest extends AbstractTransactionalJUnit4SpringC
 		assertEquals(aantalArtikels + 1, super.countRowsInTable(ARTIKELS));
 		assertEquals(1, super.countRowsInTableWhere(ARTIKELS, "id=" + artikel.getId()));
 		assertNotEquals(0, artikel.getId());
+	}
+	@Test
+	public void findByNaamContains() {
+		String woord = "t";
+		List<Artikel> artikels = repository.findByNaamContains(woord);
+		long aantalArtikels = super.jdbcTemplate.queryForObject("select count(*) from artikels where naam like '%t%'", long.class);
+		assertEquals(aantalArtikels, artikels.size());
+		String vorigeNaam = "";
+		for (Artikel artikel : artikels) {
+			assertTrue(artikel.getNaam().toLowerCase().contains(woord));
+			assertTrue(vorigeNaam.compareToIgnoreCase(artikel.getNaam()) <= 0);
+			vorigeNaam = artikel.getNaam();
+		}
 	}
 }
