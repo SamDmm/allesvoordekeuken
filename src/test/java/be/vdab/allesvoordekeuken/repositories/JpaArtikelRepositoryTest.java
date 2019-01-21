@@ -21,6 +21,8 @@ import org.springframework.test.context.junit4.AbstractTransactionalJUnit4Spring
 import org.springframework.test.context.junit4.SpringRunner;
 
 import be.vdab.allesvoordekeuken.entities.Artikel;
+import be.vdab.allesvoordekeuken.entities.FoodArtikel;
+import be.vdab.allesvoordekeuken.entities.NonFoodArtikel;
 
 @RunWith(SpringRunner.class)
 @DataJpaTest
@@ -29,45 +31,69 @@ import be.vdab.allesvoordekeuken.entities.Artikel;
 @Import(JpaArtikelRepository.class)
 public class JpaArtikelRepositoryTest extends AbstractTransactionalJUnit4SpringContextTests {
 	private static final String ARTIKELS = "artikels";
-	private Artikel artikel;
+	private FoodArtikel foodArtikel;
+	private NonFoodArtikel nonFoodArtikel;
+	@Autowired
+	private JpaArtikelRepository repository;
 	
 	@Before
 	public void before() {
-		artikel = new Artikel("testtest", BigDecimal.TEN, BigDecimal.ONE);
+		foodArtikel = new FoodArtikel("testfood2", BigDecimal.ONE, BigDecimal.TEN, 7);
+		nonFoodArtikel = new NonFoodArtikel("testnonfood2", BigDecimal.ONE, BigDecimal.TEN, 30);
 	}
-	@Autowired
-	private JpaArtikelRepository repository;
-	private long idVanTestArtikel() {
-		return super.jdbcTemplate.queryForObject("select id from artikels where naam = 'test';", Long.class);
+	
+	private long idVanTestFoodArtikel() {
+		return super.jdbcTemplate.queryForObject("select id from artikels where naam = 'testfood';", Long.class);
+	}
+	private long idVanTestNonFoodArtikel() {
+		return super.jdbcTemplate.queryForObject("select id from artikels where naam = 'testnonfood';", Long.class);
 	}
 	@Test
-	public void read() {
-		Artikel artikel = repository.read(idVanTestArtikel()).get();
-		assertEquals("test", artikel.getNaam());
+	public void readFoodArtikel() {
+		FoodArtikel artikel = (FoodArtikel) repository.read(idVanTestFoodArtikel()).get();
+		assertEquals("testFood", artikel.getNaam());
+	}
+	@Test
+	public void readNonFoodArtikel() {
+		NonFoodArtikel artikel = (NonFoodArtikel) repository.read(idVanTestNonFoodArtikel()).get();
+		assertEquals("testNonFood", artikel.getNaam());
 	}
 	@Test
 	public void readOnbestaandArtikel() {
 		assertFalse(repository.read(-1).isPresent());
 	}
 	@Test
-	public void create() {
-		int aantalArtikels = super.countRowsInTable(ARTIKELS);
-		repository.create(artikel);
-		assertEquals(aantalArtikels + 1, super.countRowsInTable(ARTIKELS));
-		assertEquals(1, super.countRowsInTableWhere(ARTIKELS, "id=" + artikel.getId()));
-		assertNotEquals(0, artikel.getId());
+	public void createFoodArtikel() {
+		int aantalFoodArtikels = super.countRowsInTableWhere(ARTIKELS, "soort='F'");
+		repository.create(foodArtikel);
+		assertEquals(aantalFoodArtikels + 1, super.countRowsInTableWhere(ARTIKELS, "soort='F'"));
+		assertEquals(1, super.countRowsInTableWhere(ARTIKELS, "id=" + foodArtikel.getId()));
+	}
+	@Test
+	public void createNonFoodArtikel() {
+		int aantalNonFoodArtikels = super.countRowsInTableWhere(ARTIKELS, "soort='NF'");
+		repository.create(nonFoodArtikel);
+		assertEquals(aantalNonFoodArtikels + 1, super.countRowsInTableWhere(ARTIKELS, "soort='NF'"));
+		assertEquals(1, super.countRowsInTableWhere(ARTIKELS, "id=" + nonFoodArtikel.getId()));
 	}
 	@Test
 	public void findByNaamContains() {
-		String woord = "t";
-		List<Artikel> artikels = repository.findByNaamContains(woord);
-		long aantalArtikels = super.jdbcTemplate.queryForObject("select count(*) from artikels where naam like '%t%'", long.class);
+		List<Artikel> artikels = repository.findByNaamContains("es");
+		long aantalArtikels = super.jdbcTemplate.queryForObject("select count(*) from artikels where naam like '%es%'", long.class);
 		assertEquals(aantalArtikels, artikels.size());
 		String vorigeNaam = "";
 		for (Artikel artikel : artikels) {
-			assertTrue(artikel.getNaam().toLowerCase().contains(woord));
-			assertTrue(vorigeNaam.compareToIgnoreCase(artikel.getNaam()) <= 0);
-			vorigeNaam = artikel.getNaam();
+			String naam = artikel.getNaam();
+			assertTrue(naam.toLowerCase().contains("es"));
+			assertTrue(naam.compareTo(vorigeNaam) >= 0);
+			vorigeNaam = naam;
 		}
+	}
+	@Test
+	public void prijsVerhoging() {
+		int aantalAangepast = repository.prijsVerhoging(BigDecimal.TEN);
+		assertEquals(super.countRowsInTable("artikels"), aantalAangepast);
+		BigDecimal nieuwePrijs = super.jdbcTemplate.queryForObject("select verkoopprijs from artikels where id=?", BigDecimal.class, idVanTestFoodArtikel());
+		assertEquals(0, BigDecimal.valueOf(132).compareTo(nieuwePrijs));
 	}
 }
