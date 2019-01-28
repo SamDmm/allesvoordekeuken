@@ -90,6 +90,7 @@ public class JpaArtikelRepositoryTest extends AbstractTransactionalJUnit4SpringC
 	@Test
 	public void findByNaamContains() {
 		List<Artikel> artikels = repository.findByNaamContains("es");
+		manager.clear();
 		long aantalArtikels = super.jdbcTemplate.queryForObject("select count(*) from artikels where naam like '%es%'", long.class);
 		assertEquals(aantalArtikels, artikels.size());
 		String vorigeNaam = "";
@@ -97,6 +98,7 @@ public class JpaArtikelRepositoryTest extends AbstractTransactionalJUnit4SpringC
 			String naam = artikel.getNaam();
 			assertTrue(naam.toLowerCase().contains("es"));
 			assertTrue(naam.compareTo(vorigeNaam) >= 0);
+			System.out.println(naam + ':' + artikel.getArtikelGroep().getNaam());
 			vorigeNaam = naam;
 		}
 	}
